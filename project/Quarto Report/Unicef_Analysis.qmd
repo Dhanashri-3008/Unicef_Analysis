@@ -1,0 +1,30 @@
+---
+---
+title: "Unicef_Analysis"
+subtitle: "Subtitle or Additional Information"
+author: "Dhanashri G"
+date: "April 25, 2024"
+html_document:
+  theme: minty
+  toc: true
+  toc_float: true
+---
+```{r setup, include=FALSE}
+#libraries
+library(tidyverse)
+library(readr)
+library(ggplot2)
+library(plotly)
+library(maps)
+library(dplyr)
+library(readr)
+library(RColorBrewer)
+
+#data
+
+unicef_data <- read_csv("Unicef_Indicator.csv")
+
+
+
+```
+

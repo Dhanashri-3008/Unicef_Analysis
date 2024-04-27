@@ -1,0 +1,159 @@
+---
+title: "Analyzing Global Development:A Data-Driven Approach to Demographic and Economic Indicators from UNICEF"
+subtitle: "Insights into Life Expectancy, Economic Performance, and Population Dynamics: Assessing the State of Nations for Informed Policy Action"
+author: "Dhanashri G"
+date: "April 26, 2024"
+html_document: 
+theme: "minty"
+backgroundcolor: lightgrey
+toc: true
+toc_float: true
+format: html 
+execute: 
+  echo: false
+  warning: false
+  message: false 
+---
+```{r setup,include=FALSE}
+#libraries
+library(tidyverse)
+library(ggplot2)
+library(maps)
+library(dplyr)
+library(plotly)
+library(readr)
+library(RColorBrewer)
+library(scales)
+
+#data
+unicef_data <- read_csv("Unicef_Indicator.csv")
+```
+
+# INTRODUCTION
+
+***In this report, we look into *UNICEF DATA*, focusing on the key indicators that shape our world's collective health and wealth. Each graph depicts a chapter in a broader story: **how populations in nations like as China and Japan grow and age, how economies push and pull against one another, and how the threads of wealth and health intertwine. This is more than just data; it is a mirror of our global family's evolving face, a map that directs us to where the most pressing needs are and where action might spark progress**.***
+
+<p class="text-primary">
+
+## Life Expectancy Map Visualization:
+
+***This map highlights global disparities in life expectancy at birth, showcasing a vivid contrast between countries. Regions shaded in deeper blues are where people live longer, pointing towards better health infrastructure or higher standards of living. Conversely, the red-shaded regions indicate shorter life spans, suggesting areas where public health may require more attention and resources. This visual starkly emphasizes the need for targeted health interventions and policy support in areas with lower life expectancy.***
+
+```{r, fig.cap="Global distribution of life expectancy at birth. This map visualizes disparities in life expectancy across countries, with varying shades representing the observed values. Countries in blue show higher life expectancy, while those in red have lower, indicating significant global health inequalities."}
+
+world_map <- map_data("world")
+world_data <- left_join(world_map, unicef_data, by = c("region" = "country"))
+
+# Plotting the map with the corrected data column for fill
+ggplot(world_data, aes(x = long, y = lat, group = group, fill = obs_value)) +
+  geom_polygon() +
+  scale_fill_distiller(palette = "RdBu", direction = 1) +
+  labs(title = "Indicator Visualization: Life Expectancy at Birth",
+       x = "Longitude", y = "Latitude") +
+  theme_minimal()
+```
+## Scatter Plot of GNI vs. Life Expectancy: 
+
+***The scatter plot draws a connection between the economic and health statuses of selected countries, depicting that wealth can correlate with health to a certain extent. The upward trend seen across most countries suggests that higher national income levels are often associated with longer life expectancies. However, outliers in this trend indicate that wealth is not the sole determinant of health, pointing to the influence of factors such as healthcare accessibility, lifestyle, and social conditions.***
+
+```{r,fig.cap="This scatter plot showcases the link between wealth and wellbeing in each of the ten different countries. It reveals the general tendency that wealth mostly behaves like a companion in health promotion. However, some exception in the plot unveils the reality that wealth is not a sole measure of prosperity, and it’s a combination of many factors which make up a nations’ health story"}
+
+#Loading dataset
+unicef_data <- read_csv("Unicef_Indicator.csv")
+# Selected countries for the scatter plot
+selected_countries <- c('Sao Tome and Principe', 'Guinea-Bissau', 'Timor-Leste', 'Liberia', 'Maldives', 
+                        'Mauritania', 'Rwanda', 'Niger', 'Mongolia', 'Madagascar', 'Mozambique', 
+                        "Lao People's Democratic Republic", 'Honduras', 'Senegal', 'Nepal', 
+                        'Congo, the Democratic Republic of the', 'Cameroon', 
+                        'Tanzania, United Republic of', 'Burma', 'Kenya')
+
+# Filter for the selected countries and remove NA values for GNI and Life Expectancy
+unicef_data_selected <- unicef_data %>%
+  filter(country %in% selected_countries) %>%
+  drop_na(`GNI (current US$)`, `Life expectancy at birth, total (years)`)
+
+# Scatter plot for GNI vs Life Expectancy for the selected countries
+ggplot(unicef_data_selected, aes(x = `GNI (current US$)`, y = `Life expectancy at birth, total (years)`, color = country)) +
+  geom_point() +
+  scale_x_log10() +  # Log scale for the GNI axis
+  labs(title = "Scatter Plot of GNI vs. Life Expectancy for Selected Countries",
+       x = "GNI (current US$) (log scale)",
+       y = "Life Expectancy at Birth (years)") +
+  theme_minimal() +
+  theme(legend.position = "right") +
+  guides(color = guide_legend(title = "Country"))
+
+```
+## Evolution of Average GDP per Capita Bar Chart
+
+***This colorful bar chart tracks the average GDP per capita for top-performing countries over a span of six years. It illustrates economic trajectories, showing growths and declines that reflect each country's economic health and policy effectiveness. The varying bar heights and colors allow for quick comparisons between the countries and years, providing a snapshot of how different nations have navigated the economic waves from 2012 to 2018.***
+
+```{r,fig.cap="This graph shows the change of the average GDP per capita, (expressed in the year equivalent of 2015 USD) in the last six years which are from 2012 to 2018 for the top ten countries with the best performance. It reflects economic waves of growth and development, demonstrating how each country has shifted its GDP up and down over the years. The colors are used to differentiate countries. Thereby, it makes it easy to find the individual countries and compare the rate of their growth or decline in wealth. Through concentrating on successful economic leaders, we can learn about how to maximize the prosperity of the entire world."}
+
+# Convert the time_period to a factor to ensure it's treated as a discrete variable
+unicef_data$time_period <- factor(unicef_data$time_period)
+
+# First, find the top 10 countries with the highest average GDP per capita over the period from 2012 to 2018
+top_10_countries <- unicef_data %>%
+  group_by(country) %>%
+  summarize(Average_GDP_per_capita = mean(`GDP per capita (constant 2015 US$)`, na.rm = TRUE)) %>%
+  top_n(10, Average_GDP_per_capita) %>%
+  pull(country)
+
+# Filter the gdp_evolution data for just these top 10 countries
+gdp_evolution_top10 <- unicef_data %>%
+  filter(country %in% top_10_countries)
+
+# Create the bar chart for just the top 10 countries
+gdp_bar_chart_top10 <- ggplot(gdp_evolution_top10, aes(x = time_period, y = `GDP per capita (constant 2015 US$)`, fill = country)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.75)) +
+  scale_fill_manual(values = rainbow(10)) +
+  labs(
+    x = "Year",
+    y = "Average GDP per Capita (constant 2015 US$)",
+    title = "Evolution of Average GDP per Capita from 2012 to 2018 for Top 10 Countries",
+    fill = "Country"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_text(angle = 90, vjust = 0.5)
+  )
+print(gdp_bar_chart_top10)
+
+```
+
+
+## Time Series Plot of Total Population of China and Japan:
+
+***The time series plot captures the starkly different population growth patterns of China and Japan. China's steep curve reflects its massive and rapid population increase, posing challenges in terms of sustainable development and resource management. In contrast, Japan's relatively flat line suggests a stable or slowly growing population with its own set of challenges, such as supporting an aging society. This graph underscores the distinct demographic paths these economic giants are taking and the tailored strategies they'll require.***
+
+```{r,fig.cap="The time series plot illustrates the population trajectories of China and Japan, highlighting stark contrasts in growth rates. Selected for their significant economic influence in Asia, the graph compares the rapid population increase of China with Japan's more moderate rise. Analyzing these trends provides valuable insight into each country’s developmental challenges and resource management strategies, which are critical for policy-making and forecasting future needs"}
+
+unicef_data <- read_csv("unicef_metadata.csv")
+
+# Filter data for China and Japan, and ensure the Population column is numeric
+china_japan_data <- unicef_data %>%
+  filter(country %in% c('China', 'Japan')) %>%
+  mutate(Population_total = as.numeric(`Population, total`)) %>%
+  drop_na(Population_total)
+
+# Plotting the time series for China and Japan
+population_ggplot <- china_japan_data %>%
+  ggplot(aes(x = year, y = Population_total, group = country, color = country)) +
+  geom_line() +
+  scale_y_continuous(labels = function(x) paste0(x / 1e6, "M")) +
+  labs(x = 'Year', y = 'Total Population (Million)',
+       title = 'Time Series Plot of Total Population of China and Japan') +
+  theme_light()
+
+# Print the plot
+print(population_ggplot)
+
+```
+## Summary and Recommendations
+
+***The story of development narrated by visually compelling data visualizations emerged from the UNICEF dataset. The exponential growth of the Chinese population requires devising long-term plans for resource efficiency, while the Japan population stability alarmingly emphasizes the importance of developing new, innovative approaches for aging people. The scatter plot that connects GNI with life expectancy illustrates the fact that wellbeing prevails over wealth which brings into attention the necessity of comprehensive policy integration. The political economy drama of constant GDP fluctuations emphasizes the importance of flexible and intelligent fiscal policies. Conclusively, nations should tailor their development agendas: for top-populated countries such as China, to exploit resources tolerantly, and for old economies like Japan, to enhance medical achievements. In a word, the integration of health and economic policies is what we are looking for in order to make the global community stronger.***
+
+
+
